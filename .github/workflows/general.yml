@@ -50,7 +50,7 @@ jobs:
 
           # Create the application user
           CREATE_QUERY="CREATE USER ${APP_USER} WITH PASSWORD '${APP_USER_PWD}';"
-          PGPASSWORD="password" psql -U "postgres" -h "localhost" -c "${CXEATE_QUERY}"
+          PGPASSWORD="password" psql -U "postgres" -h "localhost" -c "${CREATE_QUERY}"
 
           # Grant create db priviliges to the app user
           GRANT_QUERY="ALTER USER ${APP_USER} CREATEDB;"
