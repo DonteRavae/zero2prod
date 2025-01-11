@@ -1,17 +1,25 @@
+FROM lukemathwalker/cargo-chef:latest-rust-1 AS chef
+WORKDIR /app
+RUN apt update && apt install lld clang -y
+
+FROM chef as planner
+COPY . .
+# Compute a lock-file for the project
+RUN cargo chef prepare --recipe-path recipe.json
+
 # BUILDER STAGE
 
-FROM rust:1.84.0 AS builder
+FROM chef AS builder
 
-# The `app` folder will be created by Docker in case it does not exist already.
-WORKDIR /app
-# Install the required system dependencies for linking configuration
-RUN apt update && apt install lld clang -y
+COPY --from=planner /app/recipe.json recipe.json
+# Build the project dependecies, not the application
+RUN cargo chef cook --release --recipe-path recipe.json
 # Copy all files from working environment to Docker image
 COPY . .
 # Set SQLX_OFFLINE environment variable to use cached queries
 ENV SQLX_OFFLINE=true
 # Build binary using release profile to make it fast
-RUN cargo build --release
+RUN cargo build --release --bin zero2prod
 
 # RUNTIME STAGE
 
