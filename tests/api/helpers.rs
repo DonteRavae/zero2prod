@@ -8,6 +8,7 @@ use zero2prod::{
     telemetry::{get_subscriber, init_subscriber},
 };
 
+// Ensure the `tracing` stack is only initialized once using `LazyLock`
 static TRACING: LazyLock<()> = LazyLock::new(|| {
     let default_filter_level = "info";
     let subscriber_name = "test";
@@ -28,7 +29,7 @@ pub struct TestApp {
 impl TestApp {
     pub async fn post_subscriptions(&self, body: String) -> reqwest::Response {
         reqwest::Client::new()
-            .post(&format!("{}/subscriptions", &self.address))
+            .post(format!("{}/subscriptions", &self.address))
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()

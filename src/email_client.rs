@@ -40,10 +40,11 @@ impl EmailClient {
         html_content: &str,
         text_content: &str,
     ) -> Result<(), String> {
-        let url = match self.base_url.join("email") {
-            Ok(url) => url,
-            Err(_) => return Err("Unable to parse email suffix".to_string()),
-        };
+        let url = self.base_url.join("email").map_err(|err| {
+            tracing::error!("{err:?}");
+            "Unable to parse email endpoint".to_string()
+        })?;
+
         let request_body = SendEmailRequest {
             from: self.sender.as_ref(),
             to: recipient.as_ref(),
@@ -61,9 +62,9 @@ impl EmailClient {
             .json(&request_body)
             .send()
             .await
-            .map_err(|err| format!("{err}"))?
+            .map_err(|err| format!("{err:?}"))?
             .error_for_status()
-            .map_err(|err| format!("{err}"))?;
+            .map_err(|err| format!("{err:?}"))?;
 
         Ok(())
     }
@@ -90,6 +91,7 @@ mod tests {
         Fake, Faker,
     };
     use secrecy::SecretString;
+    use serde_json::Value;
     use wiremock::{
         matchers::{any, header, header_exists, method, path},
         Mock, MockServer, ResponseTemplate,
@@ -101,9 +103,7 @@ mod tests {
 
     impl wiremock::Match for SendEmailBodyMatcher {
         fn matches(&self, request: &wiremock::Request) -> bool {
-            let result: Result<serde_json::Value, _> = serde_json::from_slice(&request.body);
-
-            if let Ok(body) = result {
+            if let Ok(body) = serde_json::from_slice::<Value>(&request.body) {
                 dbg!(&body);
                 body.get("From").is_some()
                     && body.get("To").is_some()
