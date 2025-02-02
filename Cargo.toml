@@ -14,11 +14,11 @@ name = "zero2prod"
 [dependencies]
 chrono = { version = "0.4.39", default-features = false, features = ["clock"] }
 actix-web = "4.9.0"
-config = "0.15.6"
+config = "0.15.7"
 serde = { version = "1.0.217", features = ["derive"] }
 tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
 tokio-macros = "2.5.0"
-uuid = { version = "1.12.0", features = ["v4"] }
+uuid = { version = "1.12.1", features = ["v4"] }
 tracing = { version = "0.1.41", features = ["log"] }
 tracing-subscriber = { version = "0.3.19", features = [
     "registry",
@@ -31,7 +31,8 @@ tracing-actix-web = "0.7.15"
 serde-aux = "4.5.0"
 unicode-segmentation = "1.12.0"
 claims = "0.8.0"
-validator = "0.19.0"
+validator = "0.20.0"
+rand = { version = "0.8.5", features = ["std_rng"] }
 
 [dependencies.sqlx]
 version = "0.8.3"
@@ -52,8 +53,8 @@ features = ["json", "rustls-tls"]
 
 [dev-dependencies]
 fake = "3.1.0"
+linkify = "0.10.0"
 quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"
-rand = "0.8.5"
-serde_json = "1.0.135"
+serde_json = "1.0.138"
 wiremock = "0.6.2"
