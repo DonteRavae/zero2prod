@@ -39,11 +39,8 @@ impl EmailClient {
         subject: &str,
         html_content: &str,
         text_content: &str,
-    ) -> Result<(), String> {
-        let url = self.base_url.join("email").map_err(|err| {
-            tracing::error!("{err:?}");
-            "Unable to parse email endpoint".to_string()
-        })?;
+    ) -> Result<(), reqwest::Error> {
+        let url = self.base_url.to_string() + "email";
 
         let request_body = SendEmailRequest {
             from: self.sender.as_ref(),
@@ -61,10 +58,8 @@ impl EmailClient {
             )
             .json(&request_body)
             .send()
-            .await
-            .map_err(|err| format!("{err:?}"))?
-            .error_for_status()
-            .map_err(|err| format!("{err:?}"))?;
+            .await?
+            .error_for_status()?;
 
         Ok(())
     }
