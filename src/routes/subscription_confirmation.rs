@@ -1,7 +1,10 @@
 use actix_web::{web, HttpResponse};
+use anyhow::Context;
 use serde::Deserialize;
 use sqlx::PgPool;
 use uuid::Uuid;
+
+use crate::errors::{RetrieveSubscriberIdError, SubscriptionConfirmationError};
 
 #[derive(Deserialize)]
 pub struct Parameters {
@@ -12,20 +15,18 @@ pub struct Parameters {
 pub async fn confirm(
     db_pool: web::Data<PgPool>,
     parameters: web::Query<Parameters>,
-) -> HttpResponse {
-    let id = match get_subscriber_id_from_token(&db_pool, &parameters.subscription_token).await {
-        Ok(id) => id,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
+) -> Result<HttpResponse, SubscriptionConfirmationError> {
+    let id = get_subscriber_id_from_token(&db_pool, &parameters.subscription_token)
+        .await
+        .context("Failed to retrieve subscriber id from database.")?;
 
     match id {
-        None => HttpResponse::Unauthorized().finish(),
+        None => Ok(HttpResponse::Unauthorized().finish()),
         Some(subscriber_id) => {
-            if confirm_subscriber(&db_pool, subscriber_id).await.is_err() {
-                return HttpResponse::InternalServerError().finish();
-            }
-
-            HttpResponse::Ok().finish()
+            confirm_subscriber(&db_pool, subscriber_id)
+                .await
+                .context("Failed to confirm subscription in database.")?;
+            Ok(HttpResponse::Ok().finish())
         }
     }
 }
@@ -44,11 +45,7 @@ async fn confirm_subscriber(db_pool: &PgPool, subscriber_id: Uuid) -> Result<(),
         subscriber_id
     )
     .execute(db_pool)
-    .await
-    .map_err(|e| {
-        tracing::error!("Failed to execute query: {e:?}");
-        e
-    })?;
+    .await?;
 
     Ok(())
 }
@@ -60,7 +57,7 @@ async fn confirm_subscriber(db_pool: &PgPool, subscriber_id: Uuid) -> Result<(),
 async fn get_subscriber_id_from_token(
     db_pool: &PgPool,
     subscription_token: &str,
-) -> Result<Option<Uuid>, sqlx::Error> {
+) -> Result<Option<Uuid>, RetrieveSubscriberIdError> {
     let result = sqlx::query!(
         r#"
         SELECT subscriber_id FROM subscription_tokens
@@ -70,10 +67,7 @@ async fn get_subscriber_id_from_token(
     )
     .fetch_optional(db_pool)
     .await
-    .map_err(|e| {
-        tracing::error!("Failed to execute query: {e:?}");
-        e
-    })?;
+    .map_err(RetrieveSubscriberIdError)?;
 
     Ok(result.map(|r| r.subscriber_id))
 }
