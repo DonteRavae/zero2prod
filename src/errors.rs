@@ -43,6 +43,8 @@ impl Debug for SubscriptionConfirmationError {
 
 impl ResponseError for SubscriptionConfirmationError {}
 
+// --- RETRIEVE SUBSCRIBER ERROR --- //
+
 pub struct RetrieveSubscriberIdError(pub sqlx::Error);
 
 impl Display for RetrieveSubscriberIdError {
@@ -88,6 +90,28 @@ impl Debug for StoreTokenError {
 impl std::error::Error for StoreTokenError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         Some(&self.0)
+    }
+}
+
+// --- PUBLISH NEWSLETTER ERROR --- //
+
+#[derive(thiserror::Error)]
+pub enum PublishError {
+    #[error(transparent)]
+    UnexpectedError(#[from] anyhow::Error),
+}
+
+impl Debug for PublishError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
+
+impl ResponseError for PublishError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            PublishError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
     }
 }
 
